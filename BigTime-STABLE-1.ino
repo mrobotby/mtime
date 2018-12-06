@@ -85,6 +85,7 @@ int always_on = false;
 long seconds = 55;
 int minutes = 12;
 int hours = 8;
+int a=0;
 
 //Careful messing with the system color, you can damage the display if
 //you assign the wrong color. If you're in doubt, set it to red and load the code,
