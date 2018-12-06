@@ -2,65 +2,65 @@
  7-17-2011
  Spark Fun Electronics 2011
  Nathan Seidle
- 
+
  This code is public domain but you buy me a beer if you use this and we meet someday (Beerware license).
- 
+
  This is the firmware for BigTime, the wrist watch kit. It is based on an ATmega328 running with internal
  8MHz clock and external 32kHz crystal for keeping the time (aka RTC). The code and system have been tweaked
- to lower the power consumption of the ATmeg328 as much as possible. The watch currently uses about 
- 1.2uA in idle (non-display) mode and about 13mA when displaying the time. With a 200mAh regular 
+ to lower the power consumption of the ATmeg328 as much as possible. The watch currently uses about
+ 1.2uA in idle (non-display) mode and about 13mA when displaying the time. With a 200mAh regular
  CR2032 battery you should get 2-3 years of use!
- 
+
  To compile and load this code onto your watch, select "Arduino Pro or Pro Mini 3.3V/8MHz w/ ATmega328" from
- the Boards menu. 
- 
- If you're looking to save power in your own project, be sure to read section 9.10 of the ATmega328 
+ the Boards menu.
+
+ If you're looking to save power in your own project, be sure to read section 9.10 of the ATmega328
  datasheet to turn off all the bits of hardware you don't need.
- 
+
  BigTime requires the Pro 8MHz bootloader with a few modifications:
  Internal 8MHz
  Clock div 8 cleared
  Brown out detect disabled
  BOOTRST set
- BOOSZ = 1024 
+ BOOSZ = 1024
  This is to save power and open up the XTAL pins for use with a 38.786kHz external osc.
- 
+
  So the fuse bits I get using AVR studio:
  HIGH 0xDA
  LOW 0xE2
- Extended 0xFF  
- 
+ Extended 0xFF
+
  3,600 seconds in an hour
  1 time check per hour, 2 seconds at 13mA
  3,598 seconds @ 1.2uA
  (3598 / 3600) * 0.0012mA + (2 / 3600) * 13mA = 0.0084mA used per hour
- 
+
  200mAh / 0.0084mA = 23,809hr = 992 days = 2.7 years
- 
+
  We can't use the standard Arduino delay() or delaymicrosecond() because we shut down timer0 to save power
- 
+
  We turn off Brown out detect because it alone uses ~16uA.
- 
+
  7-2-2011: Currently at 1.13uA
- 
+
  7-4-2011: Let's wake up every 8 seconds instead of every 1 to save even more power
  Since we don't display seconds, this should be fine
  We are now at ~1.05uA on average
- 
+
  7-17-2011: 1.09uA, portable with coincell power
  Jumps to 1.47uA every 8 seconds with system clock lowered to 1MHz
  Jumps to 1.37uA every 8 seconds with system clock at 8MHz
  Let's keep the internal clock at 8MHz since it doesn't seem to help to lower the internal clock.
- 
- 8-11-2011: Adding display color so that production can more easily know what code is on the 
- pre-programmed ATmega. 
- 
+
+ 8-11-2011: Adding display color so that production can more easily know what code is on the
+ pre-programmed ATmega.
+
  8-19-2011: Now we can print things like "red, gren, blue, yelo".
- 
+
  7-12-2012: Added TV-B-Gone off codes. TV-B-Gone by Mitch Altman and Limor Fried. This project allows BigTime to
  turn off TVs by soldering an IR LED to Arduino pin 3 and GND. I updated the enclosure design files as well to
  allow the 5MM LED to fit inside the circumference of the enclosure.
- 
+
  */
 #include "main.h"
 
@@ -69,7 +69,7 @@
 
 //Declaring this will enable IR broadcast when you hit the time button twice
 //By default, we don't enable this
-//#define ENABLE_TVBGONE 
+//#define ENABLE_TVBGONE
 
 //Set the 12hourMode to false for military/world time. Set it to true for American 12 hour time.
 int TwelveHourMode = false;
@@ -79,12 +79,14 @@ int show_time_length = 2000;
 int show_the_time = false;
 
 //You can set always_on to true and the display will stay on all the time
-//This will drain the battery in about 15 hours 
+//This will drain the battery in about 15 hours
 int always_on = false;
 
 long seconds = 55;
 int minutes = 12;
 int hours = 8;
+int a=0;
+int b=0;
 
 //Careful messing with the system color, you can damage the display if
 //you assign the wrong color. If you're in doubt, set it to red and load the code,
@@ -142,11 +144,11 @@ SIGNAL(TIMER2_OVF_vect){
 //The interrupt occurs when you push the button
 SIGNAL(INT0_vect){
   //When you hit the button, we will need to display the time
-  //if(show_the_time == false) 
+  //if(show_the_time == false)
   show_the_time = true;
 }
 
-void setup() {                
+void setup() {
   //To reduce power, setup all pins as inputs with no pullups
   for(int x = 1 ; x < 18 ; x++){
     pinMode(x, INPUT);
@@ -172,7 +174,7 @@ void setup() {
   pinMode(colons, OUTPUT);
   pinMode(ampm, OUTPUT);
 
-  //Power down various bits of hardware to lower power usage  
+  //Power down various bits of hardware to lower power usage
   set_sleep_mode(SLEEP_MODE_PWR_SAVE);
   sleep_enable();
 
@@ -205,7 +207,7 @@ void setup() {
   //CLKPR = (1<<CLKPCE); //Enable clock writing
   //CLKPR = (1<<CLKPS3); //Divid the system clock by 256
 
-  Serial.begin(9600);  
+  Serial.begin(9600);
   Serial.println("BigTime Testing:");
 
   //Now display the system color - this is mostly for production to verify
@@ -239,7 +241,7 @@ void loop() {
     sleep_mode(); //Stop everything and go to sleep. Wake up if the Timer2 buffer overflows or if you hit the button
 
   if(show_the_time == true || always_on == true) {
-    
+
     //Debounce
     while(digitalRead(theButton) == LOW) ; //Wait for you to remove your finger
     delay(100);
@@ -322,7 +324,7 @@ void showTime() {
 #endif
 
       return;
-    }      
+    }
   }
 
 }
@@ -352,7 +354,7 @@ void setTime(void) {
   //This is the timeout counter. Once we get to ~2 seconds of inactivity, the watch
   //will exit the setTime function and return to normal operation
 
-  int buttonHold = 0; 
+  int buttonHold = 0;
   //This counts the number of times you are holding the button down consecutively
   //Once we notice you're really holding the button down a lot, we will speed up the minute counter
 
@@ -424,13 +426,13 @@ void setTime(void) {
 //Assumes 8MHz clock
 /*void fake_usdelay(int x){
  for( ; x > 0 ; x--) {
- __asm__("nop\n\t"); 
- __asm__("nop\n\t"); 
- __asm__("nop\n\t"); 
- __asm__("nop\n\t"); 
- __asm__("nop\n\t"); 
- __asm__("nop\n\t"); 
- __asm__("nop\n\t"); 
+ __asm__("nop\n\t");
+ __asm__("nop\n\t");
+ __asm__("nop\n\t");
+ __asm__("nop\n\t");
+ __asm__("nop\n\t");
+ __asm__("nop\n\t");
+ __asm__("nop\n\t");
  }
  }*/
 
@@ -716,7 +718,7 @@ Segments
     digitalWrite(segF, SEGMENT_ON);
     digitalWrite(segG, SEGMENT_ON);
     break;
-    //case e 
+    //case e
     //case L
   case 'o': //cdeg
     digitalWrite(segC, SEGMENT_ON);
